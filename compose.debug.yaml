@@ -1,0 +1,6 @@
+services:
+  lord:
+    image: lord
+    build:
+      context: .
+      dockerfile: ./Dockerfile
