@@ -2,108 +2,129 @@
 from __future__ import annotations
 
 import os
-import secrets
-from datetime import datetime, timedelta, timezone
+import random
+import smtplib
+from datetime import datetime, timedelta
+from email.message import EmailMessage
 
-from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from src.models.otp import OTPCode
 from src.models.user import User
-from src.services.email import send_otp_email
+
+OTP_TTL_MINUTES = int(os.getenv("OTP_TTL_MINUTES", "10"))
+OTP_MAX_ATTEMPTS = int(os.getenv("OTP_MAX_ATTEMPTS", "3"))
 
 
-OTP_TTL_MINUTES = int(os.getenv("OTP_TTL_MINUTES", "10"))          # 10 minut
-OTP_MAX_ATTEMPTS = int(os.getenv("OTP_MAX_ATTEMPTS", "3"))        # 3 ta xato urinish
+def _now_utc_naive() -> datetime:
+    # DB timezone=False -> naive datetime
+    return datetime.utcnow()
 
 
-def _now_utc() -> datetime:
-    return datetime.now(timezone.utc)
+def _gen_otp6() -> str:
+    return f"{random.randint(0, 999999):06d}"
 
 
-def _gen_6_digit_code() -> str:
-    # 000000..999999
-    return f"{secrets.randbelow(1_000_000):06d}"
+def _send_email(to_email: str, code: str, purpose: str = "LOGIN") -> None:
+    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_pass = os.getenv("SMTP_PASS")
+    email_from = os.getenv("EMAIL_FROM") or smtp_user
+
+    if not smtp_user or not smtp_pass or not email_from:
+        raise RuntimeError("SMTP_USER/SMTP_PASS/EMAIL_FROM env lar to‘liq set qilinmagan")
+
+    # Ba'zida envga bo'sh joy bilan qo'yib yuboriladi
+    smtp_pass = smtp_pass.replace(" ", "")
+
+    msg = EmailMessage()
+    msg["From"] = email_from
+    msg["To"] = to_email
+    msg["Subject"] = f"LORD Chain OTP ({purpose})"
+    msg.set_content(
+        f"Sizning 6 xonali tasdiqlash kodingiz: {code}\n\n"
+        f"Kod {OTP_TTL_MINUTES} daqiqa ichida eskiradi."
+    )
+
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as server:
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
+        server.login(smtp_user, smtp_pass)
+        server.send_message(msg)
 
 
-def create_and_send_otp(db: Session, user: User) -> OTPCode:
+def issue_otp(db: Session, user: User, purpose: str = "LOGIN") -> OTPCode:
     """
-    1) Yangi 6 xonali OTP yaratadi
-    2) DB ga saqlaydi
-    3) user.email ga yuboradi (Gmail SMTP orqali)
+    auth.py aynan shu funksiyani chaqiradi:
+      - yangi OTP yaratadi
+      - eski aktiv OTPlarni bekor qiladi
+      - DB'ga yozadi
+      - user.email ga yuboradi
     """
-    # avvalgi ishlatilmagan OTPlarni xohlasang bekor qilish mumkin (majburiy emas)
-    # db.query(OTPCode).filter(
-    #     OTPCode.user_id == user.id,
-    #     OTPCode.is_used.is_(False),
-    #     OTPCode.expires_at > _now_utc().replace(tzinfo=None),
-    # ).update({"is_used": True})
+    # eski ishlatilmagan OTPlarni bekor qilamiz (tartib uchun)
+    db.query(OTPCode).filter(
+        OTPCode.user_id == user.id,
+        OTPCode.is_used == False,  # noqa: E712
+    ).update({"is_used": True})
+    db.commit()
 
-    code = _gen_6_digit_code()
-    expires_at = _now_utc() + timedelta(minutes=OTP_TTL_MINUTES)
+    code = _gen_otp6()
+    expires_at = _now_utc_naive() + timedelta(minutes=OTP_TTL_MINUTES)
 
     otp = OTPCode(
         user_id=user.id,
         code=code,
-        expires_at=expires_at.replace(tzinfo=None),  # DB TIMESTAMP timezone-siz bo‘lsa
+        expires_at=expires_at,
         attempts=0,
         is_used=False,
     )
-
     db.add(otp)
     db.commit()
     db.refresh(otp)
 
-    # Email yuborish
-    send_otp_email(user.email, code)
-
+    _send_email(to_email=user.email, code=code, purpose=purpose)
     return otp
 
 
 def verify_otp(db: Session, user: User, code: str) -> bool:
     """
-    Foydalanuvchining eng oxirgi (latest) ishlatilmagan OTP sini tekshiradi.
-    To‘g‘ri bo‘lsa: is_used=True qilib qo‘yadi va True qaytaradi.
-    Noto‘g‘ri bo‘lsa: attempts++ qiladi, limitdan oshsa is_used=True qiladi va False qaytaradi.
+    auth.py verify_otp shu funksiyani ishlatadi.
     """
     code = (code or "").strip()
+    if len(code) != 6 or not code.isdigit():
+        return False
 
-    otp: OTPCode | None = (
+    otp = (
         db.query(OTPCode)
-        .filter(OTPCode.user_id == user.id)
-        .order_by(desc(OTPCode.created_at))
+        .filter(
+            OTPCode.user_id == user.id,
+            OTPCode.is_used == False,  # noqa: E712
+        )
+        .order_by(OTPCode.created_at.desc())
         .first()
     )
 
     if not otp:
         return False
 
-    # allaqachon ishlatilgan bo‘lsa
-    if otp.is_used:
-        return False
-
-    # muddati tugagan bo‘lsa
-    now_naive = _now_utc().replace(tzinfo=None)
-    if otp.expires_at <= now_naive:
+    now = _now_utc_naive()
+    if otp.expires_at <= now:
         otp.is_used = True
         db.commit()
         return False
 
-    # urinishlar limiti
     if otp.attempts >= OTP_MAX_ATTEMPTS:
         otp.is_used = True
         db.commit()
         return False
 
-    # kod tekshirish
     if otp.code != code:
-        otp.attempts = (otp.attempts or 0) + 1
-        if otp.attempts >= OTP_MAX_ATTEMPTS:
-            otp.is_used = True
+        otp.attempts = otp.attempts + 1
         db.commit()
         return False
 
-    # to‘g‘ri bo‘lsa
     otp.is_used = True
     db.commit()
     return True
