@@ -1,25 +1,25 @@
-# backend/src/services/sessions.py
-from __future__ import annotations
-
-import secrets
+import uuid
 from sqlalchemy.orm import Session
 
-from backend.src.models.session import UserSession
+from src.models.UserSession import UserSession
+from src.models.user import User
 
 
-def new_session_id() -> str:
-    return secrets.token_hex(16)
+def set_single_session(db: Session, user: User, jwt_token: str) -> UserSession:
+    # eski sessionlarni inactive qilamiz
+    db.query(UserSession).filter(UserSession.user_id == user.id).update(
+        {"is_active": False}
+    )
 
+    # yangi session yaratamiz
+    new_session = UserSession(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        jwt_token=jwt_token,
+        is_active=True,
+    )
 
-def set_single_session(db: Session, user_id):
-    # old sessions delete
-    db.query(UserSession).filter(UserSession.user_id == user_id).delete()
-    sid = new_session_id()
-    rec = UserSession(user_id=user_id, session_id=sid)
-    db.add(rec)
+    db.add(new_session)
     db.commit()
-    return sid
-
-
-def get_session(db: Session, user_id):
-    return db.query(UserSession).filter(UserSession.user_id == user_id).first()
+    db.refresh(new_session)
+    return new_session
