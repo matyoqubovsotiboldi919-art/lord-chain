@@ -1,27 +1,25 @@
-# backend/alembic/env.py
 from __future__ import annotations
 
 import os
 import sys
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 
-# backend papkadan src import bo‘lishi uchun
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-sys.path.append(BASE_DIR)
+# 🔥 src papkani ko‘rsatamiz
+sys.path.append(os.path.abspath(os.getcwd()))
 
+# 🔥 MODELLAR (sizdagi haqiqiy fayl nomlari bilan)
 from src.db.base import Base  # noqa
-
-# model importlar (autogenerate ko‘rsin)
 from src.models.user import User  # noqa
-from src.models.transaction import Transaction  # noqa
-from src.models.audit_log import AuditLog  # noqa
 from src.models.session import UserSession  # noqa
 from src.models.otp import OTPCode  # noqa
+from src.models.transaction import Transaction  # noqa
+from src.models.audit_log import AuditLog  # noqa
 
 config = context.config
+
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
@@ -29,7 +27,7 @@ target_metadata = Base.metadata
 
 
 def get_url() -> str:
-    url = os.environ.get("DATABASE_URL")
+    url = os.getenv("DATABASE_URL")
     if not url:
         raise RuntimeError("DATABASE_URL is not set")
     return url
@@ -57,6 +55,7 @@ def run_migrations_online() -> None:
         configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        future=True,
     )
 
     with connectable.connect() as connection:

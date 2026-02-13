@@ -4,7 +4,7 @@ from __future__ import annotations
 import secrets
 from sqlalchemy.orm import Session
 
-from src.models.session import UserSession
+from backend.src.models.session import UserSession
 
 
 def new_session_id() -> str:

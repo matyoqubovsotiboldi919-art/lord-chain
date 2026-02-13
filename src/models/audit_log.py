@@ -1,7 +1,7 @@
-from __future__ import annotations
-
-from sqlalchemy import Column, DateTime, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB
+# src/models/audit_log.py
+import uuid
+from sqlalchemy import Column, String, DateTime, ForeignKey, func
+from sqlalchemy.dialects.postgresql import UUID
 
 from src.db.base import Base
 
@@ -9,22 +9,15 @@ from src.db.base import Base
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
-    # ✅ AUDIT LOG uchun ID INTEGER bo‘lib qoladi (DBdagi SERIAL bilan mos)
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    # Kim bajardi: "user:<uuid>" / "admin" / "system" kabi
-    actor = Column(String(64), nullable=False, default="system")
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True
+    )
 
-    # Nima qildi: "REGISTER" / "LOGIN" / "TX_CREATE" / "FREEZE_USER" ...
-    action = Column(String(64), nullable=False)
-
-    # Qaysi obyektga tegishli: "user" / "transaction" ...
-    entity = Column(String(32), nullable=True)
-
-    # Obyekt ID si (uuid yoki boshqa)
-    entity_id = Column(String(64), nullable=True)
-
-    # Qo‘shimcha ma’lumot (JSON)
-    meta = Column(JSONB, nullable=True)
+    action = Column(String(255), nullable=False)
+    ip_address = Column(String(50), nullable=True)
 
     created_at = Column(DateTime(timezone=False), server_default=func.now(), nullable=False)

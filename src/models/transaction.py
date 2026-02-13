@@ -1,12 +1,7 @@
-# backend/src/models/transaction.py
-from __future__ import annotations
-
-from uuid import uuid4
-from datetime import datetime
-
-from sqlalchemy import String, DateTime, Numeric, ForeignKey, Integer
+# src/models/transaction.py
+import uuid
+from sqlalchemy import Column, String, DateTime, ForeignKey, Numeric, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.base import Base
 
@@ -14,18 +9,19 @@ from src.db.base import Base
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    from_address: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
-    to_address: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
-    amount: Mapped[float] = mapped_column(Numeric(20, 8), nullable=False)
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=False
+    )
 
-    # 1 tx = 1 block
-    block_index: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-    prev_hash: Mapped[str] = mapped_column(String(128), nullable=False)
-    block_hash: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
+    amount = Column(Numeric(20, 8), nullable=False)
+    tx_type = Column(String(20), nullable=False)  # deposit/withdraw/transfer
 
-    # optional: user link (kim yubordi)
-    user_id: Mapped[UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    block_index = Column(String(100), nullable=True)
+    prev_hash = Column(String(255), nullable=True)
+    block_hash = Column(String(255), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default="now()")
+    created_at = Column(DateTime(timezone=False), server_default=func.now(), nullable=False)
