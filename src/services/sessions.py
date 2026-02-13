@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy.orm import Session
 
-from src.models.UserSession import UserSession
+from src.models.session import UserSession
 from src.models.user import User
 
 
