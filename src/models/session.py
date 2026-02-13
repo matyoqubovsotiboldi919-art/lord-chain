@@ -1,32 +1,22 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import update
-from uuid import UUID
+import uuid
+from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey, func
+from sqlalchemy.dialects.postgresql import UUID
 
-from src.models.session import UserSession
+from src.db.base import Base
 
 
-def set_single_session(db: Session, user_id: UUID, jwt_token: str):
-    """
-    Foydalanuvchi uchun faqat bitta aktiv session qoldiradi.
-    Oldingi sessionlarni inactive qiladi.
-    """
+class UserSession(Base):
+    __tablename__ = "sessions"
 
-    # 1. Barcha eski sessionlarni inactive qilamiz
-    db.execute(
-        update(UserSession)
-        .where(UserSession.user_id == user_id)
-        .values(is_active=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    user_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False
     )
 
-    # 2. Yangi session yaratamiz
-    new_session = UserSession(
-        user_id=user_id,
-        jwt_token=jwt_token,
-        is_active=True
-    )
+    jwt_token = Column(String(500), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
 
-    db.add(new_session)
-    db.commit()
-    db.refresh(new_session)
-
-    return new_session
+    created_at = Column(DateTime(timezone=False), server_default=func.now(), nullable=False)
