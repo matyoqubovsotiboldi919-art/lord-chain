@@ -1,45 +1,49 @@
 from __future__ import annotations
 
 import os
-import sys
 from logging.config import fileConfig
 
+from sqlalchemy import engine_from_config
+from sqlalchemy import pool
+
 from alembic import context
-from sqlalchemy import engine_from_config, pool
 
-# 🔥 src papkani ko‘rsatamiz
-sys.path.append(os.path.abspath(os.getcwd()))
-
-# 🔥 MODELLAR (sizdagi haqiqiy fayl nomlari bilan)
-from src.db.base import Base  # noqa
-from src.models.user import User  # noqa
-from src.models.session import UserSession  # noqa
-from src.models.otp import OTPCode  # noqa
-from src.models.transaction import Transaction  # noqa
-from src.models.audit_log import AuditLog  # noqa
-
+# this is the Alembic Config object
 config = context.config
 
+# Logging
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+# ===============================
+# IMPORT MODELLAR (MUHIM!)
+# ===============================
+from src.db.base import Base
+from src.models.user import User
+from src.models.session import UserSession
+from src.models.otp import OTPCode
+from src.models.transaction import Transaction
+from src.models.audit_log import AuditLog
 
 target_metadata = Base.metadata
 
 
-def get_url() -> str:
+# ===============================
+# DATABASE URL
+# ===============================
+def get_url():
     url = os.getenv("DATABASE_URL")
     if not url:
         raise RuntimeError("DATABASE_URL is not set")
     return url
 
 
-def run_migrations_offline() -> None:
+def run_migrations_offline():
     url = get_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
         compare_type=True,
     )
 
@@ -47,15 +51,14 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def run_migrations_online() -> None:
-    configuration = config.get_section(config.config_ini_section) or {}
+def run_migrations_online():
+    configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = get_url()
 
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
-        future=True,
     )
 
     with connectable.connect() as connection:
