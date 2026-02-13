@@ -1,44 +1,49 @@
 from __future__ import annotations
 
 import os
+import sys
+from pathlib import Path
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
 from alembic import context
+from sqlalchemy import engine_from_config, pool
 
-# this is the Alembic Config object
+
+# -----------------------------
+# PYTHON PATH FIX (Render/Linux)
+# -----------------------------
+BASE_DIR = Path(__file__).resolve().parent.parent  # /app
+# src papka /app/src bo'ladi
+sys.path.insert(0, str(BASE_DIR))
+
+
 config = context.config
 
-# Logging
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# ===============================
-# IMPORT MODELLAR (MUHIM!)
-# ===============================
-from src.db.base import Base
-from src.models.user import User
-from src.models.session import UserSession
-from src.models.otp import OTPCode
-from src.models.transaction import Transaction
-from src.models.audit_log import AuditLog
+
+# -----------------------------
+# Import models after sys.path fix
+# -----------------------------
+from src.db.base import Base  # noqa: E402
+from src.models.user import User  # noqa: E402
+from src.models.session import UserSession  # noqa: E402
+from src.models.otp import OTPCode  # noqa: E402
+from src.models.transaction import Transaction  # noqa: E402
+from src.models.audit_log import AuditLog  # noqa: E402
 
 target_metadata = Base.metadata
 
 
-# ===============================
-# DATABASE URL
-# ===============================
-def get_url():
+def get_url() -> str:
     url = os.getenv("DATABASE_URL")
     if not url:
         raise RuntimeError("DATABASE_URL is not set")
     return url
 
 
-def run_migrations_offline():
+def run_migrations_offline() -> None:
     url = get_url()
     context.configure(
         url=url,
@@ -51,8 +56,8 @@ def run_migrations_offline():
         context.run_migrations()
 
 
-def run_migrations_online():
-    configuration = config.get_section(config.config_ini_section)
+def run_migrations_online() -> None:
+    configuration = config.get_section(config.config_ini_section) or {}
     configuration["sqlalchemy.url"] = get_url()
 
     connectable = engine_from_config(
