@@ -1,16 +1,36 @@
+<!-- backend/frontend/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LORD • Auth</title>
+  <title>LORD • UI</title>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="styles.css" />
+  <!-- ABSOLUTE PATH: /ui/ bo'lsa ham /ui bo'lsa ham ishlaydi -->
+  <link rel="stylesheet" href="/ui/styles.css" />
 </head>
 <body>
-  <div class="auth-wrapper" id="authWrapper">
 
+  <!-- ===== TOP BAR (after login) ===== -->
+  <header class="topbar" id="topbar">
+    <div class="brand">LORD • BMI</div>
+
+    <nav class="nav">
+      <button class="nav-btn" data-view="dashboard">Dashboard</button>
+      <button class="nav-btn" data-view="tx">Transactions</button>
+      <button class="nav-btn" data-view="explorer">Explorer</button>
+      <button class="nav-btn" data-view="admin">Admin</button>
+    </nav>
+
+    <div class="right">
+      <span class="pill" id="meEmail">guest</span>
+      <button class="nav-btn danger" id="logoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <!-- ===== AUTH (before login) ===== -->
+  <div class="auth-wrapper" id="authWrapper">
     <!-- REGISTER -->
     <div class="auth-form-box register-form-box">
       <form id="registerForm" autocomplete="on">
@@ -79,10 +99,79 @@
     </div>
   </div>
 
+  <!-- ===== APP (after login) ===== -->
+  <main class="app" id="app">
+    <!-- DASHBOARD -->
+    <section class="view" id="view-dashboard">
+      <h2>Dashboard</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Balance</h3>
+          <p class="muted">If your backend has a balance endpoint, it will appear here.</p>
+          <div class="big" id="balanceBox">—</div>
+          <button class="btn" id="loadBalanceBtn">Load Balance</button>
+        </div>
+
+        <div class="card">
+          <h3>My Address</h3>
+          <p class="muted">If backend exposes address/profile info, it will appear here.</p>
+          <div class="mono" id="addressBox">—</div>
+          <button class="btn" id="loadMeBtn">Load Profile</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRANSACTIONS -->
+    <section class="view" id="view-tx">
+      <h2>Transactions</h2>
+
+      <div class="card">
+        <h3>Send</h3>
+        <div class="row">
+          <input id="tx-to" placeholder="To address" />
+          <input id="tx-amount" placeholder="Amount" inputmode="decimal" />
+          <button class="btn" id="sendTxBtn">Send</button>
+        </div>
+        <p class="muted">This will call your existing tx endpoint if it exists. If not, it will show an error without breaking UI.</p>
+      </div>
+
+      <div class="card">
+        <h3>History</h3>
+        <button class="btn" id="loadTxBtn">Load History</button>
+        <pre class="pre" id="txList">—</pre>
+      </div>
+    </section>
+
+    <!-- EXPLORER -->
+    <section class="view" id="view-explorer">
+      <h2>Explorer</h2>
+      <div class="card">
+        <h3>Search</h3>
+        <div class="row">
+          <input id="q" placeholder="Address or tx hash" />
+          <button class="btn" id="searchBtn">Search</button>
+        </div>
+        <pre class="pre" id="explorerOut">—</pre>
+      </div>
+    </section>
+
+    <!-- ADMIN -->
+    <section class="view" id="view-admin">
+      <h2>Admin</h2>
+      <div class="card">
+        <h3>Panel</h3>
+        <p class="muted">Admin endpoints will be called only if they exist; otherwise UI stays stable.</p>
+        <button class="btn" id="loadAdminBtn">Load Admin Info</button>
+        <pre class="pre" id="adminOut">—</pre>
+      </div>
+    </section>
+  </main>
+
   <!-- TOAST -->
   <div class="toast" id="toast" aria-live="polite" aria-atomic="true"></div>
 
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+  <!-- ABSOLUTE PATH SCRIPTS -->
+  <script src="/ui/config.js"></script>
+  <script src="/ui/app.js"></script>
 </body>
 </html>
