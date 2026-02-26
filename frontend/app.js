@@ -493,12 +493,15 @@
     }
   });
 
-  // ===== Boot =====
-  if(getToken()){
-    showApp();
-    loadMe().catch(()=>{});
-    verifyChain().catch(()=>{});
-  }else{
-    showAuth();
-  }
+// ===== Boot =====
+const token = getToken();
+
+if (token && token.trim().length > 10) {
+  showApp();
+  loadMe().catch(()=>{});
+  verifyChain().catch(()=>{});
+} else {
+  clearToken();
+  showAuth();
+}
 })();
