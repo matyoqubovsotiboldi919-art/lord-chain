@@ -279,24 +279,29 @@ console.log("LORD UI BUILD 20260227a");
     finally{ setBusy(verifyChainBtn, false); }
   });
 
-  // ===== BOOT (STRICT) =====
-  (async () => {
-    // HAR DOIM avval AUTH ko‘rsatamiz, keyin tokenni tekshiramiz.
+// ===== BOOT (STRICT) =====
+(async () => {
+  console.log("BOOT: showAuth first");
+  showAuth();
+
+  const t = getToken();
+  if (!t || t.trim().length < 10) {
+    console.log("BOOT: no token");
+    clearToken();
+    return;
+  }
+
+  try {
+    console.log("BOOT: token exists, validating /users/me ...");
+    await loadMe();           // token valid bo‘lsa 200 bo‘ladi
+    console.log("BOOT: token valid, showApp");
+    showApp();
+    await verifyChain().catch(()=>{});
+  } catch (e) {
+    console.log("BOOT: token invalid, clearing");
+    clearToken();
     showAuth();
-
-    const t = getToken();
-    if(!t || t.trim().length < 10) return;
-
-    try{
-      // Token haqiqiy bo‘lsa — APPga o‘tamiz
-      await loadMe();
-      showApp();
-      await verifyChain().catch(()=>{});
-    }catch{
-      // Invalid token bo‘lsa — o‘chirib tashlaymiz va login qoldiramiz
-      clearToken();
-      showAuth();
-      showToast("Token invalid. Please sign in again.", "err");
-    }
-  })();
+    showToast("Token invalid. Please sign in again.", "err");
+  }
 })();
+
