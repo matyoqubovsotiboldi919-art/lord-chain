@@ -1,77 +1,45 @@
-# src/services/security.py
-
+# backend/src/services/security.py
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any, Dict
 
-from jose import jwt, JWTError
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-# ----------------------------
-# Password hashing (bcrypt)
-# ----------------------------
+from src.core.config import settings
 
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+ALGORITHM = "HS256"
+
 
 def hash_password(password: str) -> str:
-    """Hash plain password using bcrypt."""
     return pwd_context.hash(password)
 
+
 def verify_password(password: str, password_hash: str) -> bool:
-    """Verify plain password against stored bcrypt hash."""
     return pwd_context.verify(password, password_hash)
 
 
-# ----------------------------
-# JWT helpers
-# ----------------------------
-
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
-
-def create_access_token(
-    *,
-    subject: str,
-    secret_key: str,
-    algorithm: str,
-    expires_minutes: int,
-    extra_claims: Optional[dict[str, Any]] = None,
-) -> str:
+def create_access_token(payload: Dict[str, Any], expires_minutes: int | None = None) -> str:
     """
-    Create JWT access token.
-
-    - subject: usually user_id (uuid) as string
-    - extra_claims: optional additional claims (e.g. {"role": "user"})
+    Always call like:
+        create_access_token({"sub": email, "sid": "..."} , expires_minutes=30)
     """
-    now = _utcnow()
-    exp = now + timedelta(minutes=expires_minutes)
+    if expires_minutes is None:
+        expires_minutes = int(getattr(settings, "ACCESS_TOKEN_EXPIRE_MINUTES", 60))
 
-    payload: dict[str, Any] = {
-        "sub": subject,
-        "iat": int(now.timestamp()),
-        "exp": int(exp.timestamp()),
-    }
-    if extra_claims:
-        payload.update(extra_claims)
+    to_encode = dict(payload)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=int(expires_minutes))
+    to_encode.update({"exp": expire})
 
-    return jwt.encode(payload, secret_key, algorithm=algorithm)
+    secret = getattr(settings, "SECRET_KEY", "change_me_secret")
+    return jwt.encode(to_encode, secret, algorithm=ALGORITHM)
 
-def decode_access_token(
-    token: str,
-    *,
-    secret_key: str,
-    algorithm: str,
-) -> dict[str, Any]:
-    """
-    Decode and validate JWT token.
-    Raises ValueError if invalid.
-    """
+
+def decode_token(token: str) -> Dict[str, Any]:
+    secret = getattr(settings, "SECRET_KEY", "change_me_secret")
     try:
-        data = jwt.decode(token, secret_key, algorithms=[algorithm])
-        return data
+        return jwt.decode(token, secret, algorithms=[ALGORITHM])
     except JWTError as e:
         raise ValueError("Invalid token") from e
