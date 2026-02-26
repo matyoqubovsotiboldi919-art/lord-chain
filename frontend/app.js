@@ -1,3 +1,4 @@
+console.log("LORD UI BUILD 20260227a");
 (() => {
   const API = window.API_BASE || "";
 
