@@ -1,33 +1,35 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>LORD_1_UZB</title>
-  <link rel="stylesheet" href="./styles.css"/>
+    <meta charset="UTF-8">
+    <title>LORD Chain</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="container">
-    <div class="topbar">
-      <div class="brand">
-        <div class="title">LORD</div>
-        <div class="sub">FastAPI + PostgreSQL • Wallet + Explorer + Admin</div>
-      </div>
-      <div class="nav" id="nav"></div>
-    </div>
 
-    <div class="grid" style="margin-top:14px;">
-      <div class="card" id="mainCard"></div>
-      <div class="card" id="sideCard"></div>
-    </div>
-  </div>
+<h2>LORD Chain</h2>
 
-  <div class="toast" id="toast">
-    <div class="t" id="toastTitle"></div>
-    <div class="d" id="toastDesc"></div>
-  </div>
+<div id="auth-section">
+    <h3>Register</h3>
+    <input type="email" id="reg-email" placeholder="Email">
+    <input type="password" id="reg-password" placeholder="Password">
+    <button onclick="register()">Register</button>
 
-  <script src="./config.js"></script>
-  <script src="./app.js"></script>
+    <hr>
+
+    <h3>Login</h3>
+    <input type="email" id="login-email" placeholder="Email">
+    <input type="password" id="login-password" placeholder="Password">
+    <button onclick="login()">Login</button>
+</div>
+
+<div id="dashboard" style="display:none;">
+    <h3>Logged In</h3>
+    <p id="token-display"></p>
+    <button onclick="logout()">Logout</button>
+</div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
