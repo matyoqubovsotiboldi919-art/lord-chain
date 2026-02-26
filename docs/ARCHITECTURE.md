@@ -5,7 +5,7 @@
 - SQLAlchemy 2.x
 - PostgreSQL
 - Alembic migrations
-- JWT auth + OTP
+- JWT auth (no OTP)
 - Admin token auth
 - Decimal money model (Numeric(20,8))
 

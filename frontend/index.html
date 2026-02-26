@@ -1,233 +1,56 @@
 <!doctype html>
-<html lang="en">
+<html lang="uz">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>LORD • Chain</title>
-  <link  rel="stylesheet" href="/ui/styles.css?v=20260227a" />
+  <title>LORD UI</title>
+  <link rel="stylesheet" href="./styles.css?v=20260227a">
+  <script src="./config.js?v=20260227b"></script>
 </head>
 <body>
-  <!-- AUTH SCREEN (DEFAULT: VISIBLE) -->
-  <div class="auth" id="authRoot">
-    <div class="auth-card">
-      <div class="auth-brand">
-        <div class="logo">L</div>
-        <div>
-          <div class="brand-title">LORD Chain</div>
-          <div class="brand-sub">Secure blockchain demo system</div>
-        </div>
+  <div class="wrap">
+    <header class="top">
+      <div>
+        <h1>LORD Chain UI</h1>
+        <p class="muted">Auth: register/login → token → /users/me</p>
       </div>
+      <button id="btn-logout" class="btn ghost hidden" type="button">Logout</button>
+    </header>
 
-      <div class="tabs">
-        <button class="tab active" id="tabLogin" type="button">Sign in</button>
-        <button class="tab" id="tabRegister" type="button">Create account</button>
-      </div>
-
-      <!-- LOGIN -->
-      <form class="form" id="loginForm">
-        <label class="label">Email</label>
-        <input class="input" id="loginEmail" type="email" placeholder="you@example.com" required />
-
-        <label class="label">Password</label>
-        <input class="input" id="loginPassword" type="password" placeholder="••••••••" minlength="6" required />
-
-        <button class="btn primary" id="loginBtn" type="submit">Sign in</button>
-        <div class="hint">OTP yo‘q. Token localStorage’da.</div>
-      </form>
-
-      <!-- REGISTER -->
-      <form class="form hidden" id="registerForm">
-        <label class="label">Email</label>
-        <input class="input" id="regEmail" type="email" placeholder="you@example.com" required />
-
-        <label class="label">Password</label>
-        <input class="input" id="regPassword" type="password" placeholder="min 6 characters" minlength="6" required />
-
-        <button class="btn primary" id="regBtn" type="submit">Create account</button>
-        <div class="hint">Registerdan keyin login qilasiz.</div>
-      </form>
-    </div>
-  </div>
-
-  <!-- APP SHELL (DEFAULT: HIDDEN) -->
-  <div class="shell hidden" id="appRoot">
-    <aside class="sidebar">
-      <div class="sb-brand">
-        <div class="logo sm">L</div>
-        <div>
-          <div class="sb-title">LORD</div>
-          <div class="sb-sub">Fintech UI</div>
-        </div>
-      </div>
-
-      <nav class="nav">
-        <button class="nav-item active" data-view="dashboard" type="button">Dashboard</button>
-        <button class="nav-item" data-view="transactions" type="button">Transactions</button>
-        <button class="nav-item" data-view="explorer" type="button">Explorer</button>
-        <button class="nav-item" data-view="admin" type="button">Admin</button>
-      </nav>
-
-      <div class="sb-footer">
-        <div class="me">
-          <div class="me-label">Signed in as</div>
-          <div class="me-value" id="meEmail">—</div>
-        </div>
-        <button class="btn" id="logoutBtn" type="button">Logout</button>
-      </div>
-    </aside>
-
-    <main class="content">
-      <header class="topbar">
-        <div class="top-left">
-          <button class="btn icon" id="menuBtn" type="button" aria-label="Menu">☰</button>
-          <div class="page-title" id="pageTitle">Dashboard</div>
-        </div>
-        <div class="top-right">
-          <span class="chip" id="chainStatusChip">Chain: —</span>
-          <button class="btn" id="refreshBtn" type="button">Refresh</button>
-        </div>
-      </header>
-
-      <section class="view" id="view-dashboard">
-        <div class="grid2">
-          <div class="card">
-            <div class="card-title">Profile</div>
-            <div class="kv">
-              <div class="k">Email</div><div class="v mono" id="meEmail2">—</div>
-              <div class="k">Address</div><div class="v mono" id="meAddress">—</div>
-              <div class="k">Balance</div><div class="v" id="meBalance">—</div>
-            </div>
-            <div class="row">
-              <button class="btn primary" id="loadMeBtn" type="button">Load profile</button>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-title">Chain integrity</div>
-            <div class="big" id="chainVerifyOut">—</div>
-            <div class="hint">/api/v1/explorer/verify-chain</div>
-            <div class="row">
-              <button class="btn primary" id="verifyChainBtn" type="button">Verify chain</button>
-            </div>
-          </div>
-        </div>
+    <main class="grid">
+      <section class="card">
+        <h2>Register</h2>
+        <label>Email</label>
+        <input id="reg-email" type="email" placeholder="you@gmail.com" autocomplete="username">
+        <label>Password</label>
+        <input id="reg-password" type="password" placeholder="password" autocomplete="new-password">
+        <button id="btn-register" class="btn" type="button">Register</button>
+        <div id="reg-msg" class="msg"></div>
       </section>
 
-      <section class="view hidden" id="view-transactions">
-        <div class="card">
-          <div class="card-title">Create transaction</div>
-          <div class="grid2">
-            <div>
-              <label class="label">To address</label>
-              <input class="input mono" id="txTo" placeholder="TUseWTd..." />
-            </div>
-            <div>
-              <label class="label">Amount</label>
-              <input class="input" id="txAmount" placeholder="10.5" inputmode="decimal" />
-            </div>
-          </div>
-          <div class="row">
-            <button class="btn primary" id="createTxBtn" type="button">Send</button>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="row space">
-            <div class="card-title">History</div>
-            <button class="btn" id="loadHistoryBtn" type="button">Load history</button>
-          </div>
-
-          <div class="table-wrap">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>From</th>
-                  <th>To</th>
-                  <th class="right">Amount</th>
-                  <th>Block hash</th>
-                </tr>
-              </thead>
-              <tbody id="historyBody">
-                <tr><td colspan="5" class="muted">—</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+      <section class="card">
+        <h2>Login</h2>
+        <label>Email</label>
+        <input id="login-email" type="email" placeholder="you@gmail.com" autocomplete="username">
+        <label>Password</label>
+        <input id="login-password" type="password" placeholder="password" autocomplete="current-password">
+        <button id="btn-login" class="btn" type="button">Login</button>
+        <div id="login-msg" class="msg"></div>
       </section>
 
-      <section class="view hidden" id="view-explorer">
-        <div class="card">
-          <div class="card-title">Explorer</div>
-          <div class="grid2">
-            <div>
-              <label class="label">TX (block_hash)</label>
-              <input class="input mono" id="expTxHash" placeholder="block_hash" />
-              <div class="row"><button class="btn primary" id="expTxBtn" type="button">Lookup TX</button></div>
-            </div>
-            <div>
-              <label class="label">Address</label>
-              <input class="input mono" id="expAddr" placeholder="address" />
-              <div class="row"><button class="btn primary" id="expAddrBtn" type="button">Lookup address</button></div>
-            </div>
-          </div>
-          <div class="divider"></div>
-          <pre class="pre" id="explorerOut">—</pre>
+      <section class="card span2">
+        <h2>Dashboard</h2>
+        <div id="dashboard" class="dash">
+          <div class="muted">Not logged in.</div>
         </div>
       </section>
-
-      <section class="view hidden" id="view-admin">
-        <div class="grid2">
-          <div class="card">
-            <div class="card-title">Admin login</div>
-            <label class="label">Admin password</label>
-            <input class="input" id="adminPassword" type="password" placeholder="admin password" />
-            <div class="row">
-              <button class="btn primary" id="adminLoginBtn" type="button">Get admin token</button>
-              <span class="hint mono" id="adminTokenHint">X-Admin-Token: —</span>
-            </div>
-
-            <div class="divider"></div>
-
-            <div class="card-title">Freeze / Unfreeze</div>
-            <label class="label">User email</label>
-            <input class="input" id="freezeEmail" type="email" placeholder="user@example.com" />
-            <div class="row">
-              <button class="btn" id="freezeBtn" type="button">Freeze</button>
-              <button class="btn" id="unfreezeBtn" type="button">Unfreeze</button>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="row space">
-              <div class="card-title">Audit logs</div>
-              <button class="btn" id="loadAuditBtn" type="button">Load</button>
-            </div>
-            <div class="table-wrap">
-              <table class="table">
-                <thead>
-                  <tr><th>Time</th><th>Actor</th><th>Action</th><th>Entity</th></tr>
-                </thead>
-                <tbody id="auditBody">
-                  <tr><td colspan="4" class="muted">—</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="divider"></div>
-            <pre class="pre" id="adminOut">—</pre>
-          </div>
-        </div>
-      </section>
-
-      <footer class="footer">
-        <span class="muted">LORD Chain • /ui • FastAPI + PostgreSQL</span>
-      </footer>
     </main>
+
+    <footer class="foot muted">
+      <div>UI path: <code>/ui/</code> • API: <code>/api/v1</code></div>
+    </footer>
   </div>
 
-  <div class="toast" id="toast"></div>
-
-  <script src="/ui/config.js?v=20260227b"></script>
-  <script src="/ui/app.js?v=20260227b"></script>
+  <script src="./app.js?v=20260227b"></script>
 </body>
 </html>

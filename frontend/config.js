@@ -1,3 +1,2 @@
-// backend/frontend/config.js
-// Render va localda ishlashi uchun bo'sh qoldiramiz.
+// If backend and UI are on same domain (Render), leave as "".
 window.API_BASE = "";

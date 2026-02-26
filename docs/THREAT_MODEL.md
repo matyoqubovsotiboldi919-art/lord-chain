@@ -2,7 +2,6 @@
 
 ## Main threats
 - Brute force login -> user lockout
-- OTP abuse -> OTP expiry + max tries
 - Token theft -> single session sid check
 - Admin brute force -> 3 fails -> 1 hour lock
 - Data tampering -> chain verification endpoint (6.6)
