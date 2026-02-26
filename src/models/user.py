@@ -8,9 +8,9 @@ from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, Integer, Numeric, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
-from src.db.base import Base  # agar Base boshqa joyda bo'lsa ayting
+from src.db.base import Base
 
 
 def utcnow() -> datetime:
@@ -24,7 +24,6 @@ class User(Base):
 
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
 
-  
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
     address: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
@@ -38,15 +37,3 @@ class User(Base):
     lock_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
-
-    # relationships (Transaction modeli bo'lsa ishlaydi)
-    outgoing_transactions = relationship(
-        "Transaction",
-        foreign_keys="Transaction.sender_id",
-        back_populates="sender",
-    )
-    incoming_transactions = relationship(
-        "Transaction",
-        foreign_keys="Transaction.receiver_id",
-        back_populates="receiver",
-    )
