@@ -1,23 +1,32 @@
-# src/models/audit_log.py
+# backend/src/models/audit_log.py
+from __future__ import annotations
+
 import uuid
-from sqlalchemy import Column, String, DateTime, ForeignKey, func
-from sqlalchemy.dialects.postgresql import UUID
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
+
+from sqlalchemy import DateTime, String
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.base import Base
+
+
+def utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
-    user_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True
-    )
+    actor: Mapped[str] = mapped_column(String(320), nullable=False, index=True)
+    action: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
 
-    action = Column(String(255), nullable=False)
-    ip_address = Column(String(50), nullable=True)
+    entity: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    entity_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
 
-    created_at = Column(DateTime(timezone=False), server_default=func.now(), nullable=False)
+    meta: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
