@@ -21,17 +21,46 @@ from src.services.sessions import set_single_session
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
-def _utcnow() -> datetime:
-    return datetime.utcnow()
-
-
 def _is_locked(user: User) -> bool:
-    return bool(user.lock_until and user.lock_until > _utcnow())
+    # ba'zi modelda locked_until/lock_until bo'lishi mumkin
+    until = getattr(user, "locked_until", None)
+    if until is None:
+        until = getattr(user, "lock_until", None)
+    return bool(until and until > datetime.utcnow())
 
 
-def _lock_user(user: User, minutes: int = 60) -> None:
-    user.lock_until = _utcnow() + timedelta(minutes=minutes)
-    user.failed_login_attempts = 0
+def _set_lock(user: User, minutes: int = 60):
+    until = datetime.utcnow() + timedelta(minutes=minutes)
+    if hasattr(user, "locked_until"):
+        user.locked_until = until
+    elif hasattr(user, "lock_until"):
+        user.lock_until = until
+
+    if hasattr(user, "failed_attempts"):
+        user.failed_attempts = 0
+    elif hasattr(user, "failed_login_attempts"):
+        user.failed_login_attempts = 0
+
+
+def _inc_fail(user: User) -> int:
+    if hasattr(user, "failed_attempts"):
+        user.failed_attempts = int(user.failed_attempts or 0) + 1
+        return user.failed_attempts
+    if hasattr(user, "failed_login_attempts"):
+        user.failed_login_attempts = int(user.failed_login_attempts or 0) + 1
+        return user.failed_login_attempts
+    return 0
+
+
+def _reset_fail(user: User):
+    if hasattr(user, "failed_attempts"):
+        user.failed_attempts = 0
+    if hasattr(user, "failed_login_attempts"):
+        user.failed_login_attempts = 0
+    if hasattr(user, "locked_until"):
+        user.locked_until = None
+    if hasattr(user, "lock_until"):
+        user.lock_until = None
 
 
 @router.post("/register", response_model=UserOut)
@@ -44,29 +73,32 @@ def register(payload: UserCreate, db: Session = Depends(get_db)) -> UserOut:
 
     address = f"LORD_{uuid4().hex}"
 
-    user = User(
+    user_kwargs = dict(
         email=email,
         password_hash=hash_password(payload.password),
         address=address,
         balance="1000.00000000",
         is_active=True,
         is_frozen=False,
-        failed_login_attempts=0,
-        lock_until=None,
     )
+
+    # fail/lock ustunlari bo‘lsa to‘ldirib qo‘yamiz
+    if hasattr(User, "failed_attempts"):
+        user_kwargs["failed_attempts"] = 0
+    if hasattr(User, "failed_login_attempts"):
+        user_kwargs["failed_login_attempts"] = 0
+    if hasattr(User, "locked_until"):
+        user_kwargs["locked_until"] = None
+    if hasattr(User, "lock_until"):
+        user_kwargs["lock_until"] = None
+
+    user = User(**user_kwargs)
 
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    audit_log(
-        db,
-        actor=email,
-        action="REGISTER",
-        entity="users",
-        entity_id=str(user.id),
-        meta={"address": address},
-    )
+    audit_log(db, actor=email, action="REGISTER", entity="users", entity_id=str(user.id), meta={"address": address})
     return user
 
 
@@ -78,41 +110,35 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> Token:
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    if user.is_frozen:
+    if getattr(user, "is_frozen", False):
         raise HTTPException(status_code=403, detail="Account is frozen")
 
     if _is_locked(user):
         raise HTTPException(status_code=403, detail="Account is locked. Try later.")
 
     if not verify_password(payload.password, user.password_hash):
-        user.failed_login_attempts = int(user.failed_login_attempts or 0) + 1
-        if user.failed_login_attempts >= 3:
-            _lock_user(user, minutes=60)
+        fails = _inc_fail(user)
+        if fails >= 3:
+            _set_lock(user, minutes=60)
         db.commit()
-
         audit_log(db, actor=email, action="LOGIN_FAIL", entity="users", entity_id=str(user.id))
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     # success
-    user.failed_login_attempts = 0
-    user.lock_until = None
+    _reset_fail(user)
     db.commit()
 
-    # single active session
-    session_id = set_single_session(db, user.id)
+    # 1) avval JWT yaratamiz (sid keyin qo‘shamiz)
+    token_tmp = create_access_token({"sub": user.email}, expires_minutes=30)
 
-    token_str = create_access_token(
-        {"sub": user.email, "sid": session_id},
-        expires_minutes=30,
-    )
+    # 2) sessions jadvali jwt_token NOT NULL bo‘lgani uchun shu tokenni beramiz
+    session_id = set_single_session(db, user.id, jwt_token=token_tmp)
 
-    audit_log(
-        db,
-        actor=email,
-        action="LOGIN_OK_TOKEN",
-        entity="users",
-        entity_id=str(user.id),
-        meta={"sid": session_id},
-    )
+    # 3) yakuniy token (sid bilan)
+    token = create_access_token({"sub": user.email, "sid": session_id}, expires_minutes=30)
 
-    return Token(access_token=token_str, token_type="bearer")
+    # xohlasangiz sessiondagi tokenni yangilab qo'yish ham mumkin,
+    # lekin hozir shart emas — NOT NULL muammo hal bo‘ldi.
+
+    audit_log(db, actor=email, action="LOGIN_OK_TOKEN", entity="users", entity_id=str(user.id), meta={"sid": session_id})
+    return Token(access_token=token, token_type="bearer")
