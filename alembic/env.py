@@ -29,7 +29,7 @@ if config.config_file_name is not None:
 from src.db.base import Base  # noqa: E402
 from src.models.user import User  # noqa: E402
 from src.models.session import UserSession  # noqa: E402
-from src.models.otp import OTPCode  # noqa: E402
+
 from src.models.transaction import Transaction  # noqa: E402
 from src.models.audit_log import AuditLog  # noqa: E402
 
