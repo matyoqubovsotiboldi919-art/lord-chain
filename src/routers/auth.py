@@ -26,12 +26,12 @@ def _utcnow() -> datetime:
 
 
 def _is_locked(user: User) -> bool:
-    return bool(user.locked_until and user.locked_until > _utcnow())
+    return bool(user.lock_until and user.lock_until > _utcnow())
 
 
 def _lock_user(user: User, minutes: int = 60) -> None:
-    user.locked_until = _utcnow() + timedelta(minutes=minutes)
-    user.failed_attempts = 0
+    user.lock_until = _utcnow() + timedelta(minutes=minutes)
+    user.failed_login_attempts = 0
 
 
 @router.post("/register", response_model=UserOut)
@@ -51,8 +51,8 @@ def register(payload: UserCreate, db: Session = Depends(get_db)) -> UserOut:
         balance="1000.00000000",
         is_active=True,
         is_frozen=False,
-        failed_attempts=0,
-        locked_until=None,
+        failed_login_attempts=0,
+        lock_until=None,
     )
 
     db.add(user)
@@ -85,20 +85,20 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> Token:
         raise HTTPException(status_code=403, detail="Account is locked. Try later.")
 
     if not verify_password(payload.password, user.password_hash):
-        user.failed_attempts = int(user.failed_attempts or 0) + 1
-        if user.failed_attempts >= 3:
+        user.failed_login_attempts = int(user.failed_login_attempts or 0) + 1
+        if user.failed_login_attempts >= 3:
             _lock_user(user, minutes=60)
         db.commit()
 
         audit_log(db, actor=email, action="LOGIN_FAIL", entity="users", entity_id=str(user.id))
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    # Success: reset attempts
-    user.failed_attempts = 0
-    user.locked_until = None
+    # success
+    user.failed_login_attempts = 0
+    user.lock_until = None
     db.commit()
 
-    # Single active session
+    # single active session
     session_id = set_single_session(db, user.id)
 
     token_str = create_access_token(
