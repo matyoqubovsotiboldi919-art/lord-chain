@@ -1,10 +1,7 @@
 # backend/src/schemas/auth.py
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
+
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str
-
-class OTPVerifyRequest(BaseModel):
-    email: EmailStr
-    otp: str
+    password: str = Field(min_length=6)

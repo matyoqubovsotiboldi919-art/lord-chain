@@ -1,35 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>LORD Chain</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LORD • Auth</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div class="auth-wrapper" id="authWrapper">
 
-<h2>LORD Chain</h2>
+    <!-- REGISTER -->
+    <div class="auth-form-box register-form-box">
+      <form id="registerForm" autocomplete="on">
+        <h1>Create Account</h1>
 
-<div id="auth-section">
-    <h3>Register</h3>
-    <input type="email" id="reg-email" placeholder="Email">
-    <input type="password" id="reg-password" placeholder="Password">
-    <button onclick="register()">Register</button>
+        <div class="social-links" aria-hidden="true">
+          <a href="#" tabindex="-1"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" tabindex="-1"><i class="fab fa-google"></i></a>
+          <a href="#" tabindex="-1"><i class="fab fa-linkedin-in"></i></a>
+        </div>
 
-    <hr>
+        <span>Use your email for registration</span>
 
-    <h3>Login</h3>
-    <input type="email" id="login-email" placeholder="Email">
-    <input type="password" id="login-password" placeholder="Password">
-    <button onclick="login()">Login</button>
-</div>
+        <input id="reg-email" type="email" placeholder="Email Address" required />
+        <input id="reg-password" type="password" placeholder="Password" minlength="6" required />
 
-<div id="dashboard" style="display:none;">
-    <h3>Logged In</h3>
-    <p id="token-display"></p>
-    <button onclick="logout()">Logout</button>
-</div>
+        <button type="submit" id="regSubmitBtn">Sign Up</button>
 
-<script src="config.js"></script>
-<script src="app.js"></script>
+        <div class="mobile-switch">
+          <p>Already have an account?</p>
+          <button type="button" id="mobileLoginBtn">Sign In</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="auth-form-box login-form-box">
+      <form id="loginForm" autocomplete="on">
+        <h1>Sign In</h1>
+
+        <div class="social-links" aria-hidden="true">
+          <a href="#" tabindex="-1"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" tabindex="-1"><i class="fab fa-google"></i></a>
+          <a href="#" tabindex="-1"><i class="fab fa-linkedin-in"></i></a>
+        </div>
+
+        <span>Use your account</span>
+
+        <input id="login-email" type="email" placeholder="Email Address" required />
+        <input id="login-password" type="password" placeholder="Password" required />
+
+        <button type="submit" id="loginSubmitBtn">Sign In</button>
+
+        <div class="mobile-switch">
+          <p>Don't have an account?</p>
+          <button type="button" id="mobileRegisterBtn">Sign Up</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- SLIDE PANEL -->
+    <div class="slide-panel-wrapper">
+      <div class="slide-panel">
+        <div class="panel-content panel-content-left">
+          <h1>Welcome Back!</h1>
+          <p>Log in with your credentials to continue.</p>
+          <button class="transparent-btn" id="loginBtn" type="button">Sign In</button>
+        </div>
+
+        <div class="panel-content panel-content-right">
+          <h1>Hey There!</h1>
+          <p>Create an account and start your journey.</p>
+          <button class="transparent-btn" id="registerBtn" type="button">Sign Up</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
