@@ -1,4 +1,3 @@
 // backend/frontend/config.js
-// Localda: API_BASE = ""  (xuddi shu domen/portdan ishlaydi)
-// Agar boshqa domen bo'lsa: "https://lord-chain.onrender.com"
+// Render va localda ishlashi uchun bo'sh qoldiramiz.
 window.API_BASE = "";

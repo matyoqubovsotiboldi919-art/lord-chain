@@ -1,94 +1,102 @@
-// backend/frontend/app.js
 (() => {
   const API = window.API_BASE || "";
 
   // ===== DOM =====
-  const topbar = document.getElementById("topbar");
-  const app = document.getElementById("app");
-  const authWrapper = document.getElementById("authWrapper");
   const toast = document.getElementById("toast");
 
-  const meEmail = document.getElementById("meEmail");
-  const logoutBtn = document.getElementById("logoutBtn");
-
-  const registerBtn = document.getElementById("registerBtn");
-  const loginBtn = document.getElementById("loginBtn");
-  const mobileRegisterBtn = document.getElementById("mobileRegisterBtn");
-  const mobileLoginBtn = document.getElementById("mobileLoginBtn");
-
-  const registerForm = document.getElementById("registerForm");
+  // auth
+  const authRoot = document.getElementById("authRoot");
+  const appRoot  = document.getElementById("appRoot");
+  const tabLogin = document.getElementById("tabLogin");
+  const tabRegister = document.getElementById("tabRegister");
   const loginForm = document.getElementById("loginForm");
+  const registerForm = document.getElementById("registerForm");
+  const loginEmail = document.getElementById("loginEmail");
+  const loginPassword = document.getElementById("loginPassword");
+  const regEmail = document.getElementById("regEmail");
+  const regPassword = document.getElementById("regPassword");
+  const loginBtn = document.getElementById("loginBtn");
+  const regBtn = document.getElementById("regBtn");
 
-  const regEmail = document.getElementById("reg-email");
-  const regPassword = document.getElementById("reg-password");
-  const regSubmitBtn = document.getElementById("regSubmitBtn");
+  // shell
+  const meEmail = document.getElementById("meEmail");
+  const meEmail2 = document.getElementById("meEmail2");
+  const meAddress = document.getElementById("meAddress");
+  const meBalance = document.getElementById("meBalance");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const refreshBtn = document.getElementById("refreshBtn");
+  const pageTitle = document.getElementById("pageTitle");
+  const menuBtn = document.getElementById("menuBtn");
+  const sidebar = document.querySelector(".sidebar");
 
-  const loginEmail = document.getElementById("login-email");
-  const loginPassword = document.getElementById("login-password");
-  const loginSubmitBtn = document.getElementById("loginSubmitBtn");
+  // dashboard
+  const loadMeBtn = document.getElementById("loadMeBtn");
+  const verifyChainBtn = document.getElementById("verifyChainBtn");
+  const chainVerifyOut = document.getElementById("chainVerifyOut");
+  const chainStatusChip = document.getElementById("chainStatusChip");
+
+  // tx
+  const txTo = document.getElementById("txTo");
+  const txAmount = document.getElementById("txAmount");
+  const createTxBtn = document.getElementById("createTxBtn");
+  const loadHistoryBtn = document.getElementById("loadHistoryBtn");
+  const historyBody = document.getElementById("historyBody");
+
+  // explorer
+  const expTxHash = document.getElementById("expTxHash");
+  const expAddr = document.getElementById("expAddr");
+  const expTxBtn = document.getElementById("expTxBtn");
+  const expAddrBtn = document.getElementById("expAddrBtn");
+  const explorerOut = document.getElementById("explorerOut");
+
+  // admin
+  const adminPassword = document.getElementById("adminPassword");
+  const adminLoginBtn = document.getElementById("adminLoginBtn");
+  const adminTokenHint = document.getElementById("adminTokenHint");
+  const freezeEmail = document.getElementById("freezeEmail");
+  const freezeBtn = document.getElementById("freezeBtn");
+  const unfreezeBtn = document.getElementById("unfreezeBtn");
+  const loadAuditBtn = document.getElementById("loadAuditBtn");
+  const auditBody = document.getElementById("auditBody");
+  const adminOut = document.getElementById("adminOut");
 
   // views
-  const views = {
+  const viewMap = {
     dashboard: document.getElementById("view-dashboard"),
-    tx: document.getElementById("view-tx"),
+    transactions: document.getElementById("view-transactions"),
     explorer: document.getElementById("view-explorer"),
     admin: document.getElementById("view-admin"),
   };
 
-  // dashboard widgets
-  const balanceBox = document.getElementById("balanceBox");
-  const addressBox = document.getElementById("addressBox");
-  const loadBalanceBtn = document.getElementById("loadBalanceBtn");
-  const loadMeBtn = document.getElementById("loadMeBtn");
+  // ===== State =====
+  let adminToken = ""; // X-Admin-Token
+  let currentView = "dashboard";
 
-  // tx widgets
-  const txTo = document.getElementById("tx-to");
-  const txAmount = document.getElementById("tx-amount");
-  const sendTxBtn = document.getElementById("sendTxBtn");
-  const loadTxBtn = document.getElementById("loadTxBtn");
-  const txList = document.getElementById("txList");
-
-  // explorer widgets
-  const q = document.getElementById("q");
-  const searchBtn = document.getElementById("searchBtn");
-  const explorerOut = document.getElementById("explorerOut");
-
-  // admin widgets
-  const loadAdminBtn = document.getElementById("loadAdminBtn");
-  const adminOut = document.getElementById("adminOut");
-
-  // ===== Helpers =====
-  function token() {
-    return localStorage.getItem("token") || "";
-  }
-
-  function setPanel(panel) {
-    if (!authWrapper) return;
-    if (panel === "register") authWrapper.classList.add("panel-active");
-    else authWrapper.classList.remove("panel-active");
-  }
-
-  function showToast(message, type = "info") {
-    if (!toast) return alert(message);
-    toast.textContent = message;
+  // ===== Utils =====
+  function showToast(msg, type="inf"){
+    toast.textContent = msg;
     toast.className = `toast show ${type}`;
     clearTimeout(showToast._t);
-    showToast._t = setTimeout(() => { toast.className = "toast"; }, 3500);
+    showToast._t = setTimeout(() => toast.className = "toast", 3200);
   }
 
-  function setBusy(btn, busy) {
-    if (!btn) return;
+  function setBusy(btn, busy){
+    if(!btn) return;
     btn.disabled = !!busy;
-    if (!btn.dataset._old) btn.dataset._old = btn.textContent;
-    btn.textContent = busy ? "Please wait..." : btn.dataset._old;
+    if(!btn.dataset.old) btn.dataset.old = btn.textContent;
+    btn.textContent = busy ? "Please wait..." : btn.dataset.old;
   }
 
-  async function request(method, url, body) {
-    const headers = { "Content-Type": "application/json" };
-    const t = token();
-    if (t) headers["Authorization"] = `Bearer ${t}`;
+  function getToken(){ return localStorage.getItem("token") || ""; }
+  function setToken(t){ localStorage.setItem("token", t); }
+  function clearToken(){ localStorage.removeItem("token"); }
 
-    const res = await fetch(url, {
+  async function http(method, path, body, extraHeaders={}){
+    const headers = { "Content-Type": "application/json", ...extraHeaders };
+    const t = getToken();
+    if(t) headers["Authorization"] = `Bearer ${t}`;
+
+    const res = await fetch(`${API}${path}`, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
@@ -102,211 +110,395 @@
     return { ok: res.ok, status: res.status, data };
   }
 
-  function extractToken(data) {
-    if (!data || typeof data !== "object") return null;
-    return data.access_token || data.token || null;
-  }
-
-  function getErrorMessage(data) {
-    if (!data) return "Request failed";
-    if (typeof data === "string") return data;
-    if (data.detail) {
-      if (Array.isArray(data.detail)) return data.detail.map(x => x?.msg || "Invalid input").join(", ");
-      return data.detail;
+  function errMsg(r){
+    const d = r?.data;
+    if(!d) return `Error (${r?.status || "?"})`;
+    if(typeof d === "string") return d;
+    if(d.detail){
+      if(Array.isArray(d.detail)) return d.detail.map(x => x?.msg || "Invalid").join(", ");
+      return d.detail;
     }
-    if (data.message) return data.message;
-    return "Request failed";
+    return `Error (${r?.status || "?"})`;
   }
 
-  function showAuth() {
-    topbar.style.display = "none";
-    app.style.display = "none";
-    authWrapper.style.display = "block";
-    setPanel("login");
+  function switchAuth(tab){
+    const isLogin = tab === "login";
+    tabLogin.classList.toggle("active", isLogin);
+    tabRegister.classList.toggle("active", !isLogin);
+    loginForm.classList.toggle("hidden", !isLogin);
+    registerForm.classList.toggle("hidden", isLogin);
   }
 
-  function showApp() {
-    authWrapper.style.display = "none";
-    topbar.style.display = "flex";
-    app.style.display = "block";
+  function showAuth(){
+    authRoot.classList.remove("hidden");
+    appRoot.classList.add("hidden");
+    switchAuth("login");
+  }
+
+  function showApp(){
+    authRoot.classList.add("hidden");
+    appRoot.classList.remove("hidden");
     switchView("dashboard");
   }
 
-  function switchView(name) {
-    Object.entries(views).forEach(([k, el]) => {
-      if (!el) return;
-      el.classList.toggle("active", k === name);
-    });
-
-    document.querySelectorAll(".nav-btn[data-view]").forEach(btn => {
-      btn.classList.toggle("active", btn.dataset.view === name);
-    });
+  function switchView(name){
+    currentView = name;
+    Object.entries(viewMap).forEach(([k, el]) => el.classList.toggle("hidden", k !== name));
+    document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === name));
+    pageTitle.textContent = name[0].toUpperCase() + name.slice(1);
+    if(sidebar) sidebar.classList.remove("open");
   }
 
-  // ===== Nav events =====
-  document.querySelectorAll(".nav-btn[data-view]").forEach(btn => {
+  function setMe(u){
+    const email = u?.email || "—";
+    meEmail.textContent = email;
+    meEmail2.textContent = email;
+    meAddress.textContent = u?.address || "—";
+    meBalance.textContent = (u?.balance ?? "—");
+  }
+
+  // ===== API actions (REAL endpoints) =====
+  async function loadMe(){
+    const r = await http("GET", "/api/v1/users/me");
+    if(!r.ok) throw new Error(errMsg(r));
+    setMe(r.data);
+    return r.data;
+  }
+
+  async function verifyChain(){
+    const r = await http("GET", "/api/v1/explorer/verify-chain");
+    if(!r.ok) throw new Error(errMsg(r));
+    // r.data whatever backend returns; show nicely
+    const ok = (typeof r.data === "object") ? (r.data.ok ?? r.data.valid ?? null) : null;
+    const text = ok === true ? "VALID ✅" : ok === false ? "INVALID ❌" : "OK ✅";
+    chainVerifyOut.textContent = text;
+    chainStatusChip.textContent = `Chain: ${text.replace(/\s/g,"")}`;
+    return r.data;
+  }
+
+  async function createTx(to_address, amount){
+    const r = await http("POST", "/api/v1/tx/create", { to_address, amount: Number(amount) });
+    if(!r.ok) throw new Error(errMsg(r));
+    return r.data;
+  }
+
+  async function loadHistory(){
+    const r = await http("GET", "/api/v1/tx/history");
+    if(!r.ok) throw new Error(errMsg(r));
+    return Array.isArray(r.data) ? r.data : [];
+  }
+
+  async function explorerTx(block_hash){
+    const r = await http("GET", `/api/v1/explorer/tx/${encodeURIComponent(block_hash)}`);
+    if(!r.ok) throw new Error(errMsg(r));
+    return r.data;
+  }
+
+  async function explorerAddress(address){
+    const r = await http("GET", `/api/v1/explorer/address/${encodeURIComponent(address)}`);
+    if(!r.ok) throw new Error(errMsg(r));
+    return r.data;
+  }
+
+  async function adminLogin(password){
+    // FastAPI: simple param -> query string
+    const r = await http("POST", `/api/v1/admin/login?password=${encodeURIComponent(password)}`);
+    if(!r.ok) throw new Error(errMsg(r));
+    adminToken = r.data?.admin_token || "";
+    if(!adminToken) throw new Error("Admin token not returned");
+    adminTokenHint.textContent = `X-Admin-Token: ${adminToken}`;
+    return adminToken;
+  }
+
+  async function adminFreeze(email){
+    const r = await http("POST", `/api/v1/admin/freeze/${encodeURIComponent(email)}`, null, {
+      "X-Admin-Token": adminToken
+    });
+    if(!r.ok) throw new Error(errMsg(r));
+    return r.data;
+  }
+
+  async function adminUnfreeze(email){
+    const r = await http("POST", `/api/v1/admin/unfreeze/${encodeURIComponent(email)}`, null, {
+      "X-Admin-Token": adminToken
+    });
+    if(!r.ok) throw new Error(errMsg(r));
+    return r.data;
+  }
+
+  async function adminAudit(){
+    const r = await http("GET", "/api/v1/admin/audit", null, {
+      "X-Admin-Token": adminToken
+    });
+    if(!r.ok) throw new Error(errMsg(r));
+    return Array.isArray(r.data) ? r.data : [];
+  }
+
+  // ===== Render helpers =====
+  function renderHistory(rows){
+    if(!rows.length){
+      historyBody.innerHTML = `<tr><td colspan="5" class="muted">No transactions</td></tr>`;
+      return;
+    }
+    historyBody.innerHTML = rows.map((r, idx) => `
+      <tr>
+        <td>${idx+1}</td>
+        <td class="mono">${r.from_address}</td>
+        <td class="mono">${r.to_address}</td>
+        <td class="right">${r.amount}</td>
+        <td class="mono">${r.block_hash}</td>
+      </tr>
+    `).join("");
+  }
+
+  function renderAudit(rows){
+    if(!rows.length){
+      auditBody.innerHTML = `<tr><td colspan="4" class="muted">No logs</td></tr>`;
+      return;
+    }
+    auditBody.innerHTML = rows.map(r => `
+      <tr>
+        <td class="mono">${(r.created_at || "").slice(0,19).replace("T"," ")}</td>
+        <td class="mono">${r.actor}</td>
+        <td>${r.action}</td>
+        <td class="mono">${r.entity}</td>
+      </tr>
+    `).join("");
+  }
+
+  // ===== Events =====
+  tabLogin.addEventListener("click", () => switchAuth("login"));
+  tabRegister.addEventListener("click", () => switchAuth("register"));
+
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setBusy(loginBtn, true);
+    try{
+      const payload = {
+        email: (loginEmail.value || "").trim(),
+        password: loginPassword.value || ""
+      };
+      const r = await http("POST", "/api/v1/auth/login", payload);
+      if(!r.ok) throw new Error(errMsg(r));
+      const t = r.data?.access_token;
+      if(!t) throw new Error("Token not returned");
+      setToken(t);
+      showToast("Login successful", "ok");
+      showApp();
+      await loadMe().catch(()=>{});
+      await verifyChain().catch(()=>{});
+    }catch(err){
+      showToast(String(err.message || err), "err");
+    }finally{
+      setBusy(loginBtn, false);
+    }
+  });
+
+  registerForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setBusy(regBtn, true);
+    try{
+      const payload = {
+        email: (regEmail.value || "").trim(),
+        password: regPassword.value || ""
+      };
+      const r = await http("POST", "/api/v1/auth/register", payload);
+      if(!r.ok) throw new Error(errMsg(r));
+      showToast("Registered. Now sign in.", "ok");
+      switchAuth("login");
+      loginEmail.value = payload.email;
+      loginPassword.value = payload.password;
+      loginPassword.focus();
+    }catch(err){
+      showToast(String(err.message || err), "err");
+    }finally{
+      setBusy(regBtn, false);
+    }
+  });
+
+  document.querySelectorAll(".nav-item").forEach(btn => {
     btn.addEventListener("click", () => switchView(btn.dataset.view));
   });
 
-  logoutBtn?.addEventListener("click", () => {
-    localStorage.removeItem("token");
-    showToast("Logged out", "info");
+  logoutBtn.addEventListener("click", () => {
+    clearToken();
+    adminToken = "";
+    adminTokenHint.textContent = "X-Admin-Token: —";
+    showToast("Logged out", "inf");
     showAuth();
   });
 
-  // ===== Auth events =====
-  registerBtn?.addEventListener("click", () => setPanel("register"));
-  loginBtn?.addEventListener("click", () => setPanel("login"));
-  mobileRegisterBtn?.addEventListener("click", () => setPanel("register"));
-  mobileLoginBtn?.addEventListener("click", () => setPanel("login"));
-
-  registerForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const email = (regEmail?.value || "").trim();
-    const password = regPassword?.value || "";
-    if (!email || !password) return showToast("Email and password are required", "error");
-
-    setBusy(regSubmitBtn, true);
-    try {
-      const r = await request("POST", `${API}/api/v1/auth/register`, { email, password });
-      if (!r.ok) return showToast(getErrorMessage(r.data), "error");
-
-      const t = extractToken(r.data);
-      if (t) {
-        localStorage.setItem("token", t);
-        meEmail.textContent = email;
-        showToast("Registered & logged in", "success");
-        return showApp();
+  refreshBtn.addEventListener("click", async () => {
+    try{
+      if(getToken()){
+        await loadMe();
+        await verifyChain();
+        showToast("Refreshed", "ok");
       }
-
-      // token bo'lmasa: shunchaki login qilsin
-      showToast("Registered. Please sign in.", "success");
-      setPanel("login");
-    } catch (err) {
-      showToast(String(err?.message || err), "error");
-    } finally {
-      setBusy(regSubmitBtn, false);
+    }catch(err){
+      showToast(String(err.message || err), "err");
     }
   });
 
-  loginForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const email = (loginEmail?.value || "").trim();
-    const password = loginPassword?.value || "";
-    if (!email || !password) return showToast("Email and password are required", "error");
-
-    setBusy(loginSubmitBtn, true);
-    try {
-      const r = await request("POST", `${API}/api/v1/auth/login`, { email, password });
-      if (!r.ok) return showToast(getErrorMessage(r.data), "error");
-
-      const t = extractToken(r.data);
-      if (!t) return showToast("Login ok, but token not returned by backend", "error");
-
-      localStorage.setItem("token", t);
-      meEmail.textContent = email;
-      showToast("Login successful", "success");
-      showApp();
-    } catch (err) {
-      showToast(String(err?.message || err), "error");
-    } finally {
-      setBusy(loginSubmitBtn, false);
-    }
+  menuBtn.addEventListener("click", () => {
+    if(sidebar) sidebar.classList.toggle("open");
   });
 
-  // ===== App actions (safe calls) =====
-  loadMeBtn?.addEventListener("click", async () => {
+  loadMeBtn.addEventListener("click", async () => {
     setBusy(loadMeBtn, true);
-    try {
-      // If you have /me or profile endpoint, add it here later.
-      // For now we only show: token exists
-      addressBox.textContent = "(profile endpoint not wired yet)";
-      showToast("Profile loaded (placeholder)", "info");
-    } finally {
+    try{
+      await loadMe();
+      showToast("Profile loaded", "ok");
+    }catch(err){
+      showToast(String(err.message || err), "err");
+    }finally{
       setBusy(loadMeBtn, false);
     }
   });
 
-  loadBalanceBtn?.addEventListener("click", async () => {
-    setBusy(loadBalanceBtn, true);
-    try {
-      // If you have /balance endpoint, wire it here later without breaking UI.
-      balanceBox.textContent = "(balance endpoint not wired yet)";
-      showToast("Balance loaded (placeholder)", "info");
-    } finally {
-      setBusy(loadBalanceBtn, false);
+  verifyChainBtn.addEventListener("click", async () => {
+    setBusy(verifyChainBtn, true);
+    try{
+      await verifyChain();
+      showToast("Chain verified", "ok");
+    }catch(err){
+      showToast(String(err.message || err), "err");
+    }finally{
+      setBusy(verifyChainBtn, false);
     }
   });
 
-  sendTxBtn?.addEventListener("click", async () => {
-    const to = (txTo?.value || "").trim();
-    const amount = (txAmount?.value || "").trim();
-    if (!to || !amount) return showToast("To address and amount required", "error");
+  createTxBtn.addEventListener("click", async () => {
+    const to = (txTo.value || "").trim();
+    const amount = (txAmount.value || "").trim();
+    if(!to || !amount) return showToast("To address va amount kiriting", "err");
 
-    setBusy(sendTxBtn, true);
-    try {
-      // Attempt common tx endpoint (won't break if missing)
-      const r = await request("POST", `${API}/api/v1/tx/send`, { to_address: to, amount });
-      if (!r.ok) return showToast(getErrorMessage(r.data), "error");
-      showToast("Transaction sent", "success");
-      txList.textContent = JSON.stringify(r.data, null, 2);
-    } catch (err) {
-      showToast("Tx endpoint not available or failed", "error");
-    } finally {
-      setBusy(sendTxBtn, false);
+    setBusy(createTxBtn, true);
+    try{
+      const out = await createTx(to, amount);
+      showToast("Transaction created", "ok");
+      // history refresh
+      const rows = await loadHistory();
+      renderHistory(rows);
+      // explorerOut show last tx JSON
+      explorerOut.textContent = JSON.stringify(out, null, 2);
+    }catch(err){
+      showToast(String(err.message || err), "err");
+    }finally{
+      setBusy(createTxBtn, false);
     }
   });
 
-  loadTxBtn?.addEventListener("click", async () => {
-    setBusy(loadTxBtn, true);
-    try {
-      const r = await request("GET", `${API}/api/v1/tx/history`);
-      if (!r.ok) return showToast(getErrorMessage(r.data), "error");
-      txList.textContent = JSON.stringify(r.data, null, 2);
-      showToast("History loaded", "success");
-    } catch {
-      showToast("History endpoint not available", "error");
-    } finally {
-      setBusy(loadTxBtn, false);
+  loadHistoryBtn.addEventListener("click", async () => {
+    setBusy(loadHistoryBtn, true);
+    try{
+      const rows = await loadHistory();
+      renderHistory(rows);
+      showToast("History loaded", "ok");
+    }catch(err){
+      showToast(String(err.message || err), "err");
+    }finally{
+      setBusy(loadHistoryBtn, false);
     }
   });
 
-  searchBtn?.addEventListener("click", async () => {
-    const query = (q?.value || "").trim();
-    if (!query) return showToast("Enter address or tx hash", "error");
-
-    setBusy(searchBtn, true);
-    try {
-      const r = await request("GET", `${API}/api/v1/explorer/search?q=${encodeURIComponent(query)}`);
-      if (!r.ok) return showToast(getErrorMessage(r.data), "error");
-      explorerOut.textContent = JSON.stringify(r.data, null, 2);
-      showToast("Search done", "success");
-    } catch {
-      showToast("Explorer endpoint not available", "error");
-    } finally {
-      setBusy(searchBtn, false);
+  expTxBtn.addEventListener("click", async () => {
+    const h = (expTxHash.value || "").trim();
+    if(!h) return showToast("block_hash kiriting", "err");
+    setBusy(expTxBtn, true);
+    try{
+      const out = await explorerTx(h);
+      explorerOut.textContent = JSON.stringify(out, null, 2);
+      showToast("TX found", "ok");
+    }catch(err){
+      showToast(String(err.message || err), "err");
+    }finally{
+      setBusy(expTxBtn, false);
     }
   });
 
-  loadAdminBtn?.addEventListener("click", async () => {
-    setBusy(loadAdminBtn, true);
-    try {
-      const r = await request("GET", `${API}/api/v1/admin/status`);
-      if (!r.ok) return showToast(getErrorMessage(r.data), "error");
-      adminOut.textContent = JSON.stringify(r.data, null, 2);
-      showToast("Admin loaded", "success");
-    } catch {
-      showToast("Admin endpoint not available", "error");
-    } finally {
-      setBusy(loadAdminBtn, false);
+  expAddrBtn.addEventListener("click", async () => {
+    const a = (expAddr.value || "").trim();
+    if(!a) return showToast("address kiriting", "err");
+    setBusy(expAddrBtn, true);
+    try{
+      const out = await explorerAddress(a);
+      explorerOut.textContent = JSON.stringify(out, null, 2);
+      showToast("Address found", "ok");
+    }catch(err){
+      showToast(String(err.message || err), "err");
+    }finally{
+      setBusy(expAddrBtn, false);
+    }
+  });
+
+  adminLoginBtn.addEventListener("click", async () => {
+    const p = (adminPassword.value || "").trim();
+    if(!p) return showToast("Admin password kiriting", "err");
+    setBusy(adminLoginBtn, true);
+    try{
+      await adminLogin(p);
+      showToast("Admin token ready", "ok");
+    }catch(err){
+      showToast(String(err.message || err), "err");
+    }finally{
+      setBusy(adminLoginBtn, false);
+    }
+  });
+
+  freezeBtn.addEventListener("click", async () => {
+    const email = (freezeEmail.value || "").trim();
+    if(!adminToken) return showToast("Avval admin login qiling", "err");
+    if(!email) return showToast("Email kiriting", "err");
+    setBusy(freezeBtn, true);
+    try{
+      const out = await adminFreeze(email);
+      adminOut.textContent = JSON.stringify(out, null, 2);
+      showToast("User frozen", "ok");
+    }catch(err){
+      showToast(String(err.message || err), "err");
+    }finally{
+      setBusy(freezeBtn, false);
+    }
+  });
+
+  unfreezeBtn.addEventListener("click", async () => {
+    const email = (freezeEmail.value || "").trim();
+    if(!adminToken) return showToast("Avval admin login qiling", "err");
+    if(!email) return showToast("Email kiriting", "err");
+    setBusy(unfreezeBtn, true);
+    try{
+      const out = await adminUnfreeze(email);
+      adminOut.textContent = JSON.stringify(out, null, 2);
+      showToast("User unfrozen", "ok");
+    }catch(err){
+      showToast(String(err.message || err), "err");
+    }finally{
+      setBusy(unfreezeBtn, false);
+    }
+  });
+
+  loadAuditBtn.addEventListener("click", async () => {
+    if(!adminToken) return showToast("Avval admin login qiling", "err");
+    setBusy(loadAuditBtn, true);
+    try{
+      const rows = await adminAudit();
+      renderAudit(rows);
+      adminOut.textContent = JSON.stringify(rows.slice(0, 5), null, 2);
+      showToast("Audit loaded", "ok");
+    }catch(err){
+      showToast(String(err.message || err), "err");
+    }finally{
+      setBusy(loadAuditBtn, false);
     }
   });
 
   // ===== Boot =====
-  if (token()) {
-    meEmail.textContent = "logged-in";
+  if(getToken()){
     showApp();
-  } else {
+    loadMe().catch(()=>{});
+    verifyChain().catch(()=>{});
+  }else{
     showAuth();
   }
 })();
