@@ -1,20 +1,52 @@
-# src/models/user.py
-import uuid
-from sqlalchemy import Column, String, Boolean, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
+# backend/src/models/user.py
 
-from src.db.base import Base
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone
+from decimal import Decimal
+from typing import Optional
+
+from sqlalchemy import Boolean, DateTime, Integer, Numeric, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from src.db.base import Base  # agar Base boshqa joyda bo'lsa ayting
+
+
+def utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
-    email = Column(String(255), unique=True, index=True, nullable=False)
-    hashed_password = Column(String(255), nullable=False)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
 
-    is_active = Column(Boolean, default=True, nullable=False)
-    is_frozen = Column(Boolean, default=False, nullable=False)
+  
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    created_at = Column(DateTime(timezone=False), server_default=func.now(), nullable=False)
+    address: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+
+    balance: Mapped[Decimal] = mapped_column(Numeric(20, 8), nullable=False, default=Decimal("0"))
+
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    is_frozen: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    failed_login_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    lock_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+
+    # relationships (Transaction modeli bo'lsa ishlaydi)
+    outgoing_transactions = relationship(
+        "Transaction",
+        foreign_keys="Transaction.sender_id",
+        back_populates="sender",
+    )
+    incoming_transactions = relationship(
+        "Transaction",
+        foreign_keys="Transaction.receiver_id",
+        back_populates="receiver",
+    )
